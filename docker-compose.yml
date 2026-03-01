@@ -1,0 +1,92 @@
+# syntax=docker/compose:1
+
+version: '3.9'
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: nomoodoc-postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-nomoodoc}
+      POSTGRES_USER: ${POSTGRES_USER:-nomoodoc}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - pg16-data:/var/lib/postgresql/data
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-nomoodoc} -d ${POSTGRES_DB:-nomoodoc}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - nomoodoc-network
+
+  redis:
+    image: redis:7.2-alpine
+    container_name: nomoodoc-redis
+    volumes:
+      - redis7-data:/data
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - nomoodoc-network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: nomoodoc-backend
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-nomoodoc}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-nomoodoc}
+      REDIS_URL: redis://redis:6379/0
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      JWT_ALGORITHM: ${JWT_ALGORITHM:-HS256}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000,http://localhost:8000}
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+    networks:
+      - nomoodoc-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: nomoodoc-frontend
+    environment:
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000/api/v1}
+      NODE_ENV: ${NODE_ENV:-development}
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+    networks:
+      - nomoodoc-network
+
+volumes:
+  pg16-data:
+  redis7-data:
+
+networks:
+  nomoodoc-network:
+    driver: bridge
