@@ -1,6 +1,7 @@
 # WorkRule 모델
 from datetime import datetime, date
-from sqlalchemy import String, Integer, Boolean, DateTime, ForeignKey, CheckConstraint, JSONB
+from sqlalchemy import String, Integer, Boolean, DateTime, ForeignKey, CheckConstraint
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.base import Base
 import uuid

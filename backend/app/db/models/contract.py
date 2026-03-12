@@ -2,8 +2,9 @@
 from datetime import datetime, date, time
 from sqlalchemy import (
     String, Integer, Text, Date, Time, Boolean, DateTime, ForeignKey,
-    CheckConstraint, Index, Numeric, JSONB
+    CheckConstraint, Index, Numeric
 )
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.base import Base
 import uuid

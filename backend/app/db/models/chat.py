@@ -1,6 +1,7 @@
 # Chat 관련 모델 (ChatSession, ChatMessage)
 from datetime import datetime
-from sqlalchemy import String, Integer, Text, Boolean, DateTime, ForeignKey, CheckConstraint, Index, JSONB
+from sqlalchemy import String, Integer, Text, Boolean, DateTime, ForeignKey, CheckConstraint, Index
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.base import Base
 import uuid

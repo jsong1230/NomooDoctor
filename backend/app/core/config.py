@@ -70,6 +70,18 @@ class Settings(BaseSettings):
     SENDGRID_API_KEY: str = ""
     SENDGRID_FROM_EMAIL: str = "noreply@nomoodoc.com"
 
+    # SMTP 설정 (선택 - 미설정 시 mock 모드)
+    SMTP_HOST: str = ""
+    SMTP_PORT: int = 587
+    SMTP_USER: str = ""
+    SMTP_PASSWORD: str = ""
+    SMTP_FROM: str = "noreply@nomoodoctor.com"
+    SMTP_USE_TLS: bool = True
+
+    # 카카오 알림톡 (선택 - 미설정 시 mock 모드)
+    KAKAO_API_KEY: str = ""
+    KAKAO_SENDER_KEY: str = ""
+
 
 @lru_cache()
 def get_settings() -> Settings:

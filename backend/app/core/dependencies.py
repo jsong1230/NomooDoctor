@@ -10,9 +10,10 @@ from app.core.security import decode_token
 from app.db.session import get_db
 from app.db.models.user import User
 from app.core.exceptions import UnauthorizedError, ForbiddenError
+import uuid
 
 
-security = HTTPBearer()
+security = HTTPBearer(auto_error=False)
 
 
 async def get_redis():
@@ -28,6 +29,9 @@ async def get_current_user_id(
     현재 로그인한 사용자 ID 반환 (DB 조회 없이 JWT에서만)
     """
     from jose.exceptions import JWTError
+
+    if credentials is None or credentials.credentials is None:
+        raise UnauthorizedError("인증이 필요합니다.")
 
     token = credentials.credentials
     try:
@@ -67,6 +71,32 @@ async def get_current_active_user(
 ) -> User:
     """현재 활성 사용자 반환 (이미 is_active 체크됨)"""
     return current_user
+
+
+async def get_current_company_id(
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+) -> str:
+    """
+    현재 선택된 사업장 ID 반환 (JWT에서만)
+    """
+    from jose.exceptions import JWTError
+    from app.core.exceptions import ValidationError
+
+    if credentials is None or credentials.credentials is None:
+        raise UnauthorizedError("인증이 필요합니다.")
+
+    token = credentials.credentials
+    try:
+        payload = decode_token(token)
+    except JWTError:
+        raise UnauthorizedError("유효하지 않은 토큰입니다.")
+
+    company_id = payload.get("company_id")
+    if company_id is None:
+        # 사업장이 선택되지 않았을 때 403 반환
+        raise ForbiddenError("사업장이 선택되지 않았습니다.")
+
+    return company_id
 
 
 def get_request_ip(request: Request) -> str:

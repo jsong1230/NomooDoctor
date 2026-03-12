@@ -14,14 +14,15 @@ class Company(Base):
     )
     owner_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     business_name: Mapped[str] = mapped_column(String(200), nullable=False)
-    business_number: Mapped[str] = mapped_column(String(20), unique=True, nullable=False)
+    business_number: Mapped[str] = mapped_column(String(20), nullable=False)
     representative_name: Mapped[str] = mapped_column(String(100), nullable=False)
     industry_type: Mapped[str] = mapped_column(String(50), nullable=False)
     employee_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     address: Mapped[str | None] = mapped_column(Text, nullable=True)
     postal_code: Mapped[str | None] = mapped_column(String(10), nullable=True)
     phone: Mapped[str | None] = mapped_column(String(20), nullable=True)
-    work_rule_required: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    work_rule_required: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, server_default="false")
+    is_deleted: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, server_default="false")
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=datetime.utcnow, nullable=False
     )
@@ -35,8 +36,14 @@ class Company(Base):
             "industry_type IN ('manufacturing', 'food_service', 'retail', 'service', 'it', 'construction', 'healthcare', 'other')",
             name="ck_company_industry_type"
         ),
+        CheckConstraint(
+            "work_rule_required = (employee_count >= 10)",
+            name="ck_company_work_rule_required"
+        ),
         Index("idx_companies_owner_id", "owner_id"),
-        Index("idx_companies_business_number", "business_number"),
+        Index("idx_companies_business_number", "business_number", unique=True),
+        Index("idx_companies_owner_id_active", "owner_id"),
+        Index("idx_companies_is_deleted", "is_deleted"),
     )
 
     # Relationships

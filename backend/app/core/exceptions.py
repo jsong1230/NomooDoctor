@@ -92,11 +92,42 @@ class RateLimitExceededError(AppError):
 class ConflictError(AppError):
     """리소스 충돌 오류 (E-3xxx)"""
 
-    def __init__(self, message: str = "리소스 충돌이 발생했습니다.") -> None:
+    def __init__(self, message: str = "리소스 충돌이 발생했습니다.", details: list[Any] | None = None) -> None:
         super().__init__(
             message=message,
             code="E-3001",
             status_code=status.HTTP_409_CONFLICT,
+            details=details,
+        )
+
+
+class BusinessNumberConflictError(ConflictError):
+    """사업자등록번호 중복 오류 (E-4002)"""
+
+    def __init__(self, message: str = "이미 등록된 사업자등록번호입니다.") -> None:
+        super().__init__(
+            message=message,
+            code="E-4002",
+        )
+
+
+class BusinessNumberFormatError(ValidationError):
+    """사업자등록번호 형식 오류 (E-4003)"""
+
+    def __init__(self, message: str = "사업자등록번호 형식이 올바르지 않습니다.") -> None:
+        super().__init__(
+            message=message,
+            code="E-4003",
+        )
+
+
+class CompanyNotFoundError(NotFoundError):
+    """사업장 찾기 실패 (E-4001)"""
+
+    def __init__(self, message: str = "사업장을 찾을 수 없습니다.") -> None:
+        super().__init__(
+            message=message,
+            code="E-4001",
         )
 
 

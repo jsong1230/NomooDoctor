@@ -1,6 +1,6 @@
 # Attorney 관련 모델 (LaborAttorney, AttorneyCase)
 from datetime import datetime
-from sqlalchemy import String, Numeric, Boolean, DateTime, ForeignKey, CheckConstraint, Text
+from sqlalchemy import String, Integer, Numeric, Boolean, DateTime, ForeignKey, CheckConstraint, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.base import Base
 import uuid

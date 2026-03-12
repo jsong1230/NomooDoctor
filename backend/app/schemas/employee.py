@@ -33,6 +33,7 @@ class EmployeeUpdate(BaseModel):
     email: str | None = None
     bank_name: str | None = None
     bank_account: str | None = None
+    is_active: bool | None = None
 
 
 class EmployeeResponse(EmployeeBase):
