@@ -1,6 +1,6 @@
 # 계약서 서비스
 from typing import Optional
-from datetime import date
+from datetime import date, datetime, timezone
 import uuid
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -9,7 +9,8 @@ from redis import asyncio as aioredis
 from app.db.models.contract import Contract
 from app.repositories.contract_repo import ContractRepository
 from app.repositories.employee_repo import EmployeeRepository
-from app.core.exceptions import NotFoundError, ForbiddenError, ValidationError
+from app.core.exceptions import NotFoundError, ForbiddenError, ValidationError, AppError
+from app.external.modusign_client import ModusignClient
 
 
 # 2026년 최저임금 기준 (시급)
@@ -288,6 +289,130 @@ class ContractService:
             raise NotFoundError("계약서를 찾을 수 없습니다.")
 
         return self._contract_to_dict(contract)
+
+    async def _verify_contract_access(
+        self, contract_id: uuid.UUID, company_id: uuid.UUID, user_id: uuid.UUID
+    ) -> Contract:
+        """계약서 접근 권한 검증 후 계약서 반환"""
+        from app.repositories.company_repo import CompanyRepository
+        company_repo = CompanyRepository(self.db)
+        company = await company_repo.get_by_id(company_id)
+        if company is None:
+            raise NotFoundError("사업장을 찾을 수 없습니다.")
+        if company.owner_id != user_id:
+            raise ForbiddenError("다른 사용자의 사업장에 접근할 수 없습니다.")
+
+        contract = await self.repo.get_by_id_and_company(contract_id, company_id)
+        if contract is None:
+            raise NotFoundError("계약서를 찾을 수 없습니다.")
+        return contract
+
+    async def send_sign_request(
+        self,
+        contract_id: uuid.UUID,
+        company_id: uuid.UUID,
+        user_id: uuid.UUID,
+        signer_name: str,
+        signer_email: str,
+        signer_phone: Optional[str] = None,
+    ) -> dict:
+        """전자서명 요청 발송"""
+        contract = await self._verify_contract_access(contract_id, company_id, user_id)
+
+        if contract.status == "signed":
+            raise AppError("이미 서명 완료된 계약서입니다.", code="E-9004", status_code=409)
+
+        if contract.status != "draft":
+            raise AppError("전자서명은 초안 상태의 계약서만 요청할 수 있습니다.", code="E-9002", status_code=400)
+
+        async with ModusignClient() as client:
+            result = await client.create_signing_request(
+                document_title=f"근로계약서 - {signer_name}",
+                pdf_url=contract.pdf_url or "",
+                signer_name=signer_name,
+                signer_email=signer_email,
+                signer_phone=signer_phone,
+            )
+
+        contract.status = "sent"
+        contract.sign_service_ref = result["document_id"]
+        await self.db.commit()
+
+        return {
+            "contract_id": str(contract.id),
+            "sign_service_ref": result["document_id"],
+            "status": "sent",
+            "signing_url": result["signing_url"],
+        }
+
+    async def get_sign_status(
+        self,
+        contract_id: uuid.UUID,
+        company_id: uuid.UUID,
+        user_id: uuid.UUID,
+    ) -> dict:
+        """전자서명 상태 조회"""
+        contract = await self._verify_contract_access(contract_id, company_id, user_id)
+
+        if not contract.sign_service_ref:
+            return {
+                "contract_id": str(contract.id),
+                "status": contract.status,
+                "sign_service_ref": None,
+                "signed_at": None,
+            }
+
+        # 모두싸인 API로 최신 상태 조회
+        async with ModusignClient() as client:
+            result = await client.get_document_status(contract.sign_service_ref)
+
+        # 완료 상태면 DB 업데이트
+        if result["status"] == "completed" and contract.status != "signed":
+            contract.status = "signed"
+            contract.signed_at = datetime.now(timezone.utc)
+            await self.db.commit()
+
+        return {
+            "contract_id": str(contract.id),
+            "status": contract.status,
+            "sign_service_ref": contract.sign_service_ref,
+            "signed_at": contract.signed_at.isoformat() if contract.signed_at else None,
+        }
+
+    async def handle_sign_webhook(self, document_id: str, completed_at: Optional[str] = None) -> bool:
+        """모두싸인 웹훅 처리"""
+        contract = await self.repo.get_by_sign_ref(document_id)
+        if contract is None:
+            return False
+
+        if contract.status == "signed":
+            return True  # 이미 처리됨
+
+        contract.status = "signed"
+        contract.signed_at = (
+            datetime.fromisoformat(completed_at) if completed_at
+            else datetime.now(timezone.utc)
+        )
+        await self.db.commit()
+        return True
+
+    async def get_signed_pdf(
+        self,
+        contract_id: uuid.UUID,
+        company_id: uuid.UUID,
+        user_id: uuid.UUID,
+    ) -> bytes:
+        """서명된 PDF 다운로드"""
+        contract = await self._verify_contract_access(contract_id, company_id, user_id)
+
+        if contract.status != "signed":
+            raise AppError("서명 완료된 계약서만 다운로드할 수 있습니다.", code="E-9005", status_code=400)
+
+        if not contract.sign_service_ref:
+            raise AppError("전자서명 정보가 없습니다.", code="E-9005", status_code=400)
+
+        async with ModusignClient() as client:
+            return await client.download_signed_pdf(contract.sign_service_ref)
 
     def _contract_to_dict(self, contract: Contract) -> dict[str, any]:
         """Contract 모델을 딕셔너리로 변환"""

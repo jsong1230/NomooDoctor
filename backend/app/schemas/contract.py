@@ -60,3 +60,28 @@ class ContractListResponse(BaseModel):
     start_date: date
     status: str
     created_at: str
+
+
+# === 전자서명 스키마 ===
+
+class SignRequestCreate(BaseModel):
+    """전자서명 요청"""
+    signer_name: str = Field(..., min_length=1, max_length=100)
+    signer_email: str = Field(..., pattern=r"^[^@]+@[^@]+\.[^@]+$")
+    signer_phone: str | None = Field(None, pattern=r"^01[016789]\d{7,8}$")
+
+
+class SignRequestResult(BaseModel):
+    """전자서명 요청 결과"""
+    contract_id: str
+    sign_service_ref: str
+    status: str
+    signing_url: str
+
+
+class SignStatusResult(BaseModel):
+    """서명 상태 조회 결과"""
+    contract_id: str
+    status: str
+    sign_service_ref: str | None
+    signed_at: str | None

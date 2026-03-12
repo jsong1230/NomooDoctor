@@ -1,14 +1,14 @@
 # Contracts API 라우터
 from fastapi import APIRouter, Depends, Request, status
+from fastapi.responses import JSONResponse, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.session import get_db
-from app.schemas.contract import ContractCreate, ContractResponse
+from app.schemas.contract import ContractCreate, ContractResponse, SignRequestCreate
 from app.schemas.common import ApiResponse, ErrorResponse
 from app.core.dependencies import get_current_user_id, get_current_company_id, get_redis
 from app.core.rate_limit import check_rate_limit
 from app.services.contract_service import ContractService
-from app.core.exceptions import ValidationError, NotFoundError
-from fastapi.responses import JSONResponse
+from app.core.exceptions import ValidationError, NotFoundError, AppError
 from pydantic import BaseModel, Field
 import uuid
 
@@ -179,4 +179,109 @@ async def get_contract(
                     "message": e.message
                 }
             ).model_dump()
+        )
+
+
+# === 전자서명 ===
+
+@router.post(
+    "/{contract_id}/sign-request",
+    response_model=ApiResponse[dict],
+    status_code=status.HTTP_201_CREATED,
+    summary="전자서명 요청",
+    description="계약서에 대한 전자서명 요청을 발송합니다."
+)
+async def send_sign_request(
+    contract_id: str,
+    request: SignRequestCreate,
+    user_id: str = Depends(get_current_user_id),
+    company_id: str = Depends(get_current_company_id),
+    db: AsyncSession = Depends(get_db),
+    redis=Depends(get_redis),
+):
+    """전자서명 요청 발송"""
+    contract_service = ContractService(db, redis)
+    try:
+        result = await contract_service.send_sign_request(
+            contract_id=uuid.UUID(contract_id),
+            company_id=uuid.UUID(company_id),
+            user_id=uuid.UUID(user_id),
+            signer_name=request.signer_name,
+            signer_email=request.signer_email,
+            signer_phone=request.signer_phone,
+        )
+        return ApiResponse(data=result)
+    except NotFoundError as e:
+        return JSONResponse(
+            status_code=status.HTTP_404_NOT_FOUND,
+            content=ErrorResponse(error={"code": e.code, "message": e.message}).model_dump()
+        )
+    except AppError as e:
+        return JSONResponse(
+            status_code=e.status_code,
+            content=ErrorResponse(error={"code": e.code, "message": e.message}).model_dump()
+        )
+
+
+@router.get(
+    "/{contract_id}/sign-status",
+    response_model=ApiResponse[dict],
+    summary="서명 상태 조회",
+)
+async def get_sign_status(
+    contract_id: str,
+    user_id: str = Depends(get_current_user_id),
+    company_id: str = Depends(get_current_company_id),
+    db: AsyncSession = Depends(get_db),
+    redis=Depends(get_redis),
+):
+    """전자서명 상태 조회"""
+    contract_service = ContractService(db, redis)
+    try:
+        result = await contract_service.get_sign_status(
+            contract_id=uuid.UUID(contract_id),
+            company_id=uuid.UUID(company_id),
+            user_id=uuid.UUID(user_id),
+        )
+        return ApiResponse(data=result)
+    except NotFoundError as e:
+        return JSONResponse(
+            status_code=status.HTTP_404_NOT_FOUND,
+            content=ErrorResponse(error={"code": e.code, "message": e.message}).model_dump()
+        )
+
+
+@router.get(
+    "/{contract_id}/signed-pdf",
+    summary="서명된 PDF 다운로드",
+)
+async def download_signed_pdf(
+    contract_id: str,
+    user_id: str = Depends(get_current_user_id),
+    company_id: str = Depends(get_current_company_id),
+    db: AsyncSession = Depends(get_db),
+    redis=Depends(get_redis),
+):
+    """서명 완료된 PDF 다운로드"""
+    contract_service = ContractService(db, redis)
+    try:
+        pdf_bytes = await contract_service.get_signed_pdf(
+            contract_id=uuid.UUID(contract_id),
+            company_id=uuid.UUID(company_id),
+            user_id=uuid.UUID(user_id),
+        )
+        return Response(
+            content=pdf_bytes,
+            media_type="application/pdf",
+            headers={"Content-Disposition": f"attachment; filename=contract_{contract_id}_signed.pdf"},
+        )
+    except NotFoundError as e:
+        return JSONResponse(
+            status_code=status.HTTP_404_NOT_FOUND,
+            content=ErrorResponse(error={"code": e.code, "message": e.message}).model_dump()
+        )
+    except AppError as e:
+        return JSONResponse(
+            status_code=e.status_code,
+            content=ErrorResponse(error={"code": e.code, "message": e.message}).model_dump()
         )

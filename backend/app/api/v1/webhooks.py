@@ -1,9 +1,11 @@
-# Toss Webhook API Router
+# Webhook API Router
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
+from pydantic import BaseModel
 from app.db.session import get_db
 from app.schemas.subscription import TossWebhookPayload
 from app.services.payment_service import PaymentService
+from app.services.contract_service import ContractService
 from app.core.config import settings
 import hmac
 import hashlib
@@ -63,3 +65,35 @@ def verify_toss_webhook_signature(payload: dict, signature: str) -> bool:
 
     # 서명 검증
     return hmac.compare_digest(expected, signature)
+
+
+# === 모두싸인 웹훅 ===
+
+class ModusignWebhookPayload(BaseModel):
+    event: str
+    document_id: str
+    completed_at: str | None = None
+
+
+@router.post("/modusign")
+async def modusign_webhook(
+    payload: ModusignWebhookPayload,
+    db: AsyncSession = Depends(get_db),
+):
+    """모두싸인 전자서명 웹훅 수신"""
+    if payload.event != "document.completed":
+        return {"status": "ignored"}
+
+    service = ContractService(db, None)
+    handled = await service.handle_sign_webhook(
+        document_id=payload.document_id,
+        completed_at=payload.completed_at,
+    )
+
+    if not handled:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="해당 문서를 찾을 수 없습니다."
+        )
+
+    return {"status": "ok"}

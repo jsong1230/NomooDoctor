@@ -104,6 +104,12 @@ class ContractRepository:
         result = await self.db.execute(stmt)
         return result.scalar() or 0
 
+    async def get_by_sign_ref(self, sign_service_ref: str) -> Optional[Contract]:
+        """모두싸인 문서 ID로 계약서 조회"""
+        stmt = select(Contract).where(Contract.sign_service_ref == sign_service_ref)
+        result = await self.db.execute(stmt)
+        return result.scalar_one_or_none()
+
     async def create(
         self,
         company_id: uuid.UUID,
