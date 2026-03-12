@@ -5,11 +5,13 @@ from contextlib import asynccontextmanager
 
 from app.core.config import settings
 from app.db.session import engine
+from fastapi.exceptions import RequestValidationError
 from app.core.exceptions import (
     AppError,
     ValidationError,
     app_error_handler,
     validation_error_handler,
+    request_validation_error_handler,
 )
 from app.api.v1.router import api_router
 
@@ -42,6 +44,7 @@ app.add_middleware(
 # 예외 핸들러 등록
 app.add_exception_handler(AppError, app_error_handler)
 app.add_exception_handler(ValidationError, validation_error_handler)
+app.add_exception_handler(RequestValidationError, request_validation_error_handler)
 
 # API 라우터 등록
 app.include_router(api_router, prefix=settings.API_V1_STR)

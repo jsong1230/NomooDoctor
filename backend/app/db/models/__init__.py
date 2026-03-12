@@ -7,7 +7,7 @@ from .chat import ChatSession, ChatMessage
 from .work_rule import WorkRule
 from .salary import SalarySetting, WorkRecord, Payslip
 from .attorney import LaborAttorney, AttorneyCase
-from .subscription import Subscription
+from .subscription import Subscription, PaymentHistory, PlanUsage
 from .law_vector import LawVector
 from .severance import SeveranceRecord, TerminationDocument
 
@@ -25,6 +25,8 @@ __all__ = [
     "LaborAttorney",
     "AttorneyCase",
     "Subscription",
+    "PaymentHistory",
+    "PlanUsage",
     "LawVector",
     "SeveranceRecord",
     "TerminationDocument",

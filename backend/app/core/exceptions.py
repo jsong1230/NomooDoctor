@@ -263,3 +263,76 @@ async def request_validation_error_handler(
 
 # Pydantic ValidationError 변환 (서비스 레이어 등에서 발생)
 pydantic_validation_error_handler = request_validation_error_handler
+
+
+# 구독 관련 예외 클래스
+class SubscriptionNotFoundError(NotFoundError):
+    """구독을 찾을 수 없음 (E-7003)"""
+
+    def __init__(self, message: str = "구독을 찾을 수 없습니다.") -> None:
+        super().__init__(
+            message=message,
+            code="E-7003",
+        )
+
+
+class SubscriptionActiveError(ConflictError):
+    """활성 구독이 존재함 (E-7004)"""
+
+    def __init__(self, message: str = "이미 활성 구독이 존재합니다.") -> None:
+        super().__init__(
+            message=message,
+            code="E-7004",
+        )
+
+
+class BillingKeyInvalidError(ValidationError):
+    """유효하지 않은 빌링키 (E-7005)"""
+
+    def __init__(self, message: str = "유효하지 않은 빌링키입니다.") -> None:
+        super().__init__(
+            message=message,
+            code="E-7005",
+        )
+
+
+class BillingKeyRegisterError(ValidationError):
+    """빌링키 등록 실패 (E-7007)"""
+
+    def __init__(self, message: str = "빌링키 등록에 실패했습니다.") -> None:
+        super().__init__(
+            message=message,
+            code="E-7007",
+        )
+
+
+class BillingKeyAlreadyExistsError(ConflictError):
+    """이미 등록된 빌링키 (E-7008)"""
+
+    def __init__(self, message: str = "이미 등록된 빌링키가 존재합니다.") -> None:
+        super().__init__(
+            message=message,
+            code="E-7008",
+        )
+
+
+class PaymentFailedError(AppError):
+    """결제 실패 (E-7002)"""
+
+    def __init__(self, message: str = "결제에 실패했습니다.", details: list[Any] | None = None) -> None:
+        super().__init__(
+            message=message,
+            code="E-7002",
+            status_code=status.HTTP_402_PAYMENT_REQUIRED,
+            details=details,
+        )
+
+
+class SubscriptionDowngradeError(ValidationError):
+    """다운그레이드 요청 (E-7006)"""
+
+    def __init__(self, message: str = "다운그레이드는 다음 결제일에 적용됩니다.") -> None:
+        super().__init__(
+            message=message,
+            code="E-7006",
+        )

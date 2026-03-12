@@ -82,6 +82,10 @@ class Settings(BaseSettings):
     KAKAO_API_KEY: str = ""
     KAKAO_SENDER_KEY: str = ""
 
+    # 토스페이먼츠 설정 (선택 - 미설정 시 mock 모드)
+    TOSS_SECRET_KEY: str = ""
+    TOSS_CLIENT_KEY: str = ""
+
 
 @lru_cache()
 def get_settings() -> Settings:

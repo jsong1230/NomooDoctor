@@ -1,7 +1,7 @@
 """API 라우터 집합"""
 from fastapi import APIRouter
 
-from app.api.v1 import auth, users, companies, employees, payroll, contracts, payslips, chat, compliance, retirement, attendance, work_rules
+from app.api.v1 import auth, users, companies, employees, payroll, contracts, payslips, chat, compliance, retirement, attendance, work_rules, subscriptions, webhooks
 
 # API 라우터 생성
 api_router = APIRouter()
@@ -19,3 +19,5 @@ api_router.include_router(compliance.router, prefix="/compliance", tags=["컴플
 api_router.include_router(retirement.router, prefix="/retirement", tags=["퇴직금/해고"])
 api_router.include_router(attendance.router, prefix="/attendance", tags=["근태관리"])
 api_router.include_router(work_rules.router, prefix="/work-rules", tags=["취업규칙"])
+api_router.include_router(subscriptions.router, tags=["구독"])
+api_router.include_router(webhooks.router, tags=["토스 웹훅"])
