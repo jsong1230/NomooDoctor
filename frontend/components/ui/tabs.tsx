@@ -8,6 +8,8 @@ import React, { useState, ReactNode } from 'react';
 
 interface TabsProps {
   defaultValue?: string;
+  value?: string;
+  onValueChange?: (value: string) => void;
   children: ReactNode;
   className?: string;
 }
@@ -44,8 +46,13 @@ function useTabs() {
   return context;
 }
 
-export function Tabs({ defaultValue = '', children, className = '' }: TabsProps) {
-  const [activeTab, setActiveTab] = useState(defaultValue);
+export function Tabs({ defaultValue = '', value, onValueChange, children, className = '' }: TabsProps) {
+  const [internalTab, setInternalTab] = useState(defaultValue);
+  const activeTab = value !== undefined ? value : internalTab;
+  const setActiveTab = (v: string) => {
+    if (onValueChange) onValueChange(v);
+    else setInternalTab(v);
+  };
 
   return (
     <TabsContext.Provider value={{ activeTab, setActiveTab }}>
