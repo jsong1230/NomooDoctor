@@ -3,6 +3,7 @@ from datetime import date, time, datetime, timedelta
 from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_, extract, func, case
+from sqlalchemy.orm import selectinload
 from pydantic import BaseModel
 
 from app.db.models.salary import WorkRecord
@@ -272,8 +273,8 @@ class AttendanceService:
         if employee_id:
             conditions.append(WorkRecord.employee_id == employee_id)
 
-        # 상세 데이터 조회
-        detail_stmt = select(WorkRecord).where(and_(*conditions))
+        # 상세 데이터 조회 (employee 관계 미리 로드)
+        detail_stmt = select(WorkRecord).options(selectinload(WorkRecord.employee)).where(and_(*conditions))
         detail_result = await self.db.execute(detail_stmt)
         records = detail_result.scalars().all()
 

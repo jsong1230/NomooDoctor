@@ -92,8 +92,8 @@ async def create_employee(client, company_id, token, name="테스트직원"):
         json={
             "name": name,
             "id_number": "123456789012",
-            "nationality": "한국",
-            "employment_type": "정규직",
+            "nationality": "korean",
+            "employment_type": "regular",
             "hire_date": "2020-01-01"
         }
     )

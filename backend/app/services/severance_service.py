@@ -540,9 +540,7 @@ class SeveranceService:
             raise EmployeeNotFoundError()
 
         # 회사 조회
-        company = await self.company_repo.get_by_id_and_owner(
-            company_id, UUID("dummy")  # 임시, 실제로는 owner_id 필요
-        )
+        company = await self.company_repo.get_by_id(company_id)
         if not company:
             raise NotFoundError(message="사업장을 찾을 수 없습니다.")
 

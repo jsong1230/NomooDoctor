@@ -25,10 +25,10 @@ class AppError(Exception):
 class ValidationError(AppError):
     """입력값 검증 오류 (E-1xxx)"""
 
-    def __init__(self, message: str, details: list[Any] | None = None) -> None:
+    def __init__(self, message: str, code: str = "E-1001", details: list[Any] | None = None) -> None:
         super().__init__(
             message=message,
-            code="E-1001",
+            code=code,
             status_code=status.HTTP_400_BAD_REQUEST,
             details=details,
         )
@@ -70,10 +70,10 @@ class PlanUpgradeRequiredError(AppError):
 class NotFoundError(AppError):
     """리소스 없음 오류 (E-3xxx)"""
 
-    def __init__(self, message: str = "요청한 리소스를 찾을 수 없습니다.") -> None:
+    def __init__(self, message: str = "요청한 리소스를 찾을 수 없습니다.", code: str = "E-3002") -> None:
         super().__init__(
             message=message,
-            code="E-3002",
+            code=code,
             status_code=status.HTTP_404_NOT_FOUND,
         )
 
@@ -92,10 +92,10 @@ class RateLimitExceededError(AppError):
 class ConflictError(AppError):
     """리소스 충돌 오류 (E-3xxx)"""
 
-    def __init__(self, message: str = "리소스 충돌이 발생했습니다.", details: list[Any] | None = None) -> None:
+    def __init__(self, message: str = "리소스 충돌이 발생했습니다.", code: str = "E-3001", details: list[Any] | None = None) -> None:
         super().__init__(
             message=message,
-            code="E-3001",
+            code=code,
             status_code=status.HTTP_409_CONFLICT,
             details=details,
         )
@@ -151,28 +151,37 @@ class SeveranceNotFoundError(NotFoundError):
         )
 
 
-class MinimumServiceDaysError(ValidationError):
+class MinimumServiceDaysError(AppError):
     """최소 재직일수 미달 (E-5010)"""
 
     def __init__(self, message: str = "재직기간이 1년 미만입니다.") -> None:
-        super().__init__(message=message)
-        self.code = "E-5010"
+        super().__init__(
+            message=message,
+            code="E-5010",
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        )
 
 
-class InvalidResignDateError(ValidationError):
+class InvalidResignDateError(AppError):
     """퇴사일 검증 실패 (E-5011)"""
 
     def __init__(self, message: str = "퇴사일이 입사일 이전입니다.") -> None:
-        super().__init__(message=message)
-        self.code = "E-5011"
+        super().__init__(
+            message=message,
+            code="E-5011",
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        )
 
 
-class InsufficientWageDataError(ValidationError):
+class InsufficientWageDataError(AppError):
     """급여 데이터 부족 (E-5012)"""
 
     def __init__(self, message: str = "최근 3개월 급여 데이터가 부족합니다.") -> None:
-        super().__init__(message=message)
-        self.code = "E-5012"
+        super().__init__(
+            message=message,
+            code="E-5012",
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        )
 
 
 class DuplicateSeveranceError(ConflictError):
@@ -253,4 +262,4 @@ async def request_validation_error_handler(
 
 
 # Pydantic ValidationError 변환 (서비스 레이어 등에서 발생)
-validation_error_handler = request_validation_error_handler
+pydantic_validation_error_handler = request_validation_error_handler
