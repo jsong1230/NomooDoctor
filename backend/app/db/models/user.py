@@ -36,6 +36,12 @@ class User(Base):
     plan_usage: Mapped[list["PlanUsage"]] = relationship(
                 "PlanUsage", back_populates="user", cascade="all, delete-orphan"
             )
+    attorney_profile: Mapped["LaborAttorney | None"] = relationship(
+        "LaborAttorney", back_populates="user", uselist=False
+    )
+    attorney_cases: Mapped[list["AttorneyCase"]] = relationship(
+        "AttorneyCase", back_populates="user", cascade="all, delete-orphan"
+    )
 
 
 # Import 후방 참조 해결
@@ -44,3 +50,4 @@ if TYPE_CHECKING:
     from .company import Company
     from .chat import ChatSession
     from .subscription import Subscription
+    from .attorney import LaborAttorney, AttorneyCase
