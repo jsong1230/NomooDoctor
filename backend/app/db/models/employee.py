@@ -56,6 +56,8 @@ class Employee(Base):
     salary_settings: Mapped[list["SalarySetting"]] = relationship("SalarySetting", back_populates="employee", cascade="all, delete-orphan")
     work_records: Mapped[list["WorkRecord"]] = relationship("WorkRecord", back_populates="employee", cascade="all, delete-orphan")
     payslips: Mapped[list["Payslip"]] = relationship("Payslip", back_populates="employee", cascade="all, delete-orphan")
+    severance_records: Mapped[list["SeveranceRecord"]] = relationship("SeveranceRecord", back_populates="employee", cascade="all, delete-orphan")
+    termination_documents: Mapped[list["TerminationDocument"]] = relationship("TerminationDocument", back_populates="employee", cascade="all, delete-orphan")
 
 
 # Import 후방 참조 해결
@@ -65,3 +67,4 @@ if TYPE_CHECKING:
     from .user import User
     from .contract import Contract
     from .salary import SalarySetting, WorkRecord, Payslip
+    from .severance import SeveranceRecord, TerminationDocument

@@ -147,6 +147,58 @@ async def auth_headers(test_user):
     return {}
 
 
+@pytest.fixture
+async def auth_token_and_company(client: AsyncClient, test_user):
+    """인증 토큰과 사업장 ID 반환"""
+    import random
+
+    auth_token = test_user.get("token") if test_user else None
+
+    business_number = f"{random.randint(100, 999)}-{random.randint(10, 99)}-{random.randint(10000, 99999)}"
+
+    response = await client.post(
+        "/api/v1/companies/",
+        json={
+            "business_name": "테스트사업장",
+            "business_number": business_number,
+            "representative_name": "테스트대표",
+            "industry_type": "manufacturing",
+            "employee_count": 15,
+            "address": "테스트주소",
+            "postal_code": "12345",
+            "phone": "02-1234-5678"
+        },
+        headers={"Authorization": f"Bearer {auth_token}"}
+    )
+
+    company_id = None
+    selected_token = auth_token
+    if response.status_code == 201:
+        company = response.json()["data"]
+        company_id = company["id"]
+        # 사업장 선택
+        select_response = await client.post(
+            f"/api/v1/companies/{company['id']}/select",
+            headers={"Authorization": f"Bearer {auth_token}"}
+        )
+        if select_response.status_code == 200:
+            selected_token = select_response.json()["data"]["access_token"]
+
+    return {"token": selected_token, "company_id": company_id}
+
+
+@pytest.fixture
+async def auth_token(auth_token_and_company):
+    """인증 토큰 (사업장 선택됨)"""
+    return auth_token_and_company["token"]
+
+
+@pytest.fixture
+async def company_id(auth_token_and_company):
+    """테스트 사업장 ID"""
+    return auth_token_and_company["company_id"]
+
+
 @pytest.fixture(autouse=True)
 async def clean_db_before_test(request):
     """각 테스트 전에 DB 정리 (autouse, but only for employee and contracts tests)"""
@@ -156,12 +208,13 @@ async def clean_db_before_test(request):
     # 현재 테스트 노드 이름 확인
     test_node_name = request.node.nodeid
 
-    # employee 또는 contracts 테스트만 클린업
-    if "test_employees_api" in test_node_name or "test_contracts_api" in test_node_name:
+    # employee, contracts, work_rules 테스트만 클린업
+    if any(x in test_node_name for x in ("test_employees_api", "test_contracts_api", "test_work_rules_api")):
         async with AsyncSessionLocal() as session:
             try:
-                # contracts는 employees와 종속되므로 먼저 삭제
+                # contracts, work_rules는 employees, companies와 종속되므로 먼저 삭제
                 await session.execute(text("DELETE FROM contracts"))
+                await session.execute(text("DELETE FROM work_rules"))
                 await session.execute(text("DELETE FROM employees"))
                 await session.execute(text("DELETE FROM companies"))
                 await session.execute(text("DELETE FROM users"))

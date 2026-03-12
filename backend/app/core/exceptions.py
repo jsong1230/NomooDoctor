@@ -131,6 +131,60 @@ class CompanyNotFoundError(NotFoundError):
         )
 
 
+class EmployeeNotFoundError(NotFoundError):
+    """직원 찾기 실패 (E-4004)"""
+
+    def __init__(self, message: str = "직원을 찾을 수 없습니다.") -> None:
+        super().__init__(
+            message=message,
+            code="E-4004",
+        )
+
+
+class SeveranceNotFoundError(NotFoundError):
+    """퇴직금 기록 찾기 실패 (E-5013)"""
+
+    def __init__(self, message: str = "퇴직금 기록을 찾을 수 없습니다.") -> None:
+        super().__init__(
+            message=message,
+            code="E-5013",
+        )
+
+
+class MinimumServiceDaysError(ValidationError):
+    """최소 재직일수 미달 (E-5010)"""
+
+    def __init__(self, message: str = "재직기간이 1년 미만입니다.") -> None:
+        super().__init__(message=message)
+        self.code = "E-5010"
+
+
+class InvalidResignDateError(ValidationError):
+    """퇴사일 검증 실패 (E-5011)"""
+
+    def __init__(self, message: str = "퇴사일이 입사일 이전입니다.") -> None:
+        super().__init__(message=message)
+        self.code = "E-5011"
+
+
+class InsufficientWageDataError(ValidationError):
+    """급여 데이터 부족 (E-5012)"""
+
+    def __init__(self, message: str = "최근 3개월 급여 데이터가 부족합니다.") -> None:
+        super().__init__(message=message)
+        self.code = "E-5012"
+
+
+class DuplicateSeveranceError(ConflictError):
+    """퇴직금 중복 (E-5015)"""
+
+    def __init__(self, message: str = "이미 해당 직원의 퇴직금 기록이 존재합니다.") -> None:
+        super().__init__(
+            message=message,
+            code="E-5015",
+        )
+
+
 class ErrorResponse(BaseModel):
     """에러 응답 스키마"""
     success: bool = False

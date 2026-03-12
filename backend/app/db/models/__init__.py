@@ -9,6 +9,7 @@ from .salary import SalarySetting, WorkRecord, Payslip
 from .attorney import LaborAttorney, AttorneyCase
 from .subscription import Subscription
 from .law_vector import LawVector
+from .severance import SeveranceRecord, TerminationDocument
 
 __all__ = [
     "User",
@@ -25,4 +26,6 @@ __all__ = [
     "AttorneyCase",
     "Subscription",
     "LawVector",
+    "SeveranceRecord",
+    "TerminationDocument",
 ]
